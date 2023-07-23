@@ -1,24 +1,50 @@
 import "./App.css";
-import Row from "./Row.js";
-import requests from "./requests";
-import Banner from "./Banner";
-import Nav from "./Nav";
+import HomeScreen from "./screens/HomeScreen";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import "./index.css";
+import LoginScreen from "./screens/LoginScreen";
+import { useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebase";
+import { useDispatch, useSelector } from "react-redux";
+import { login, logout, selectUser } from "./features/userSlice";
+import ProfileScreen from "./screens/ProfileScreen";
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <HomeScreen />,
+  },
+  {
+    path: "/profile",
+    element: <ProfileScreen />,
+  }
+]);
 
 function App() {
+  const user = useSelector(selectUser);
+  const dispatch = useDispatch();
+  useEffect(() => {
+    const unSubscribe = onAuthStateChanged(auth, (userAuth) => {
+      if (userAuth) {
+        //logged in
+        dispatch(
+          login({
+            uid: userAuth.uid,
+            email: userAuth.email,
+          })
+        );
+      } else {
+        //logged out
+        dispatch(logout());
+      }
+    });
+
+    return unSubscribe;
+  }, [dispatch]);
+
   return (
     <div className="App">
-      <Nav />
-      <Banner />
-      <Row title="Netflix Originals" fetchUrl={requests.NetflixOriginals} 
-        isLargeRow={true}
-      />
-      <Row title="Trending Now" fetchUrl={requests.Trending} />
-      <Row title="Top Rated" fetchUrl={requests.TopRated} />
-      <Row title="Action Movies" fetchUrl={requests.ActionMovies} />
-      <Row title="Romance Movies" fetchUrl={requests.RomanceMovies} />
-      <Row title="Comedy Movies" fetchUrl={requests.ComedyMovies} />
-      <Row title="Horror Movies" fetchUrl={requests.HorrorMovies} />
-      <Row title="Drama" fetchUrl={requests.Drama} />
+      {!user ? <LoginScreen /> : <RouterProvider router={router} />}
     </div>
   );
 }
